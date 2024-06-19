@@ -1,0 +1,42 @@
+# function performs principle component analysis on data (pd data frame)
+# calculates 95th percentile of component eigenvalues of k random datasets (see Glorfeld, 1995)
+# output is screeplot containing pca components and 95th percentile line
+# interpretation: all components with eigenvalues above 95th percentile line are higher-than-chance components, number can be used e.g. for further EFA
+
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.decomposition import PCA
+
+def PCAplusParallelAnalysis(data, k):
+#fit the pca to the data
+  pca = PCA()
+  pca.fit(data)
+  eigenvalues = pca.explained_variance_
+
+  #create random data in the same shape, fit pca over k times and store eigenvalues over components m and iterations k
+  n, m = data.shape
+  random_eigenvalues = np.empty((k, m))
+
+  for run in range(0, k):
+    random_data = np.random.normal(size=(n, m))
+    pca.fit(random_data)
+    random_eigenvalues[run, :] = pca.explained_variance_
+
+  #calculate the 95th percentile of the random eigenvalues which will be the deciding criterion á la 'above chance'
+  means = np.mean(random_eigenvalues, axis=0)
+  stds = np.std(random_eigenvalues, axis=0)
+
+  percentile_eigenvalues = means + (1.64 * stds)
+
+  #visualize result
+  components = np.arange(m) + 1
+  plt.plot(components, eigenvalues, 'o-', linewidth=2, color='blue', label='Principle Components')
+  plt.plot(components, percentile_eigenvalues, linestyle='dashdot', color='blue', alpha=0.5, label='Parallel Analysis')
+  plt.plot([0, m+1], [1, 1], 'k--', alpha=0.3)
+  plt.title(f'{k} simulations', fontsize=10)
+  plt.suptitle('PCA + Parallel Analysis Scree Plots', fontsize=18)
+  plt.xlabel('Principal Component')
+  plt.ylabel('Variance Explained')
+  plt.ylim(0)
+  plt.legend()
+  plt.show()
